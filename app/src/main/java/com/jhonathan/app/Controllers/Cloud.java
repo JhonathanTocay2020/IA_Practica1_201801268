@@ -25,19 +25,19 @@ public class Cloud {
     }
 
     @PostMapping("/Analizar")
-    public String analyzeImage(@RequestBody Map<String, String> requestBody) {
+    public String analizarIMG(@RequestBody Map<String, String> requestBody) {
         try {
-            String base64Image = requestBody.get("base64Image");
-            // Construir la URL
-            String keyV = "AIzaSyD8xG8Q7GkdvEfTGC11WmQIgyLc7qwKGzI";
-            String urlString = "https://vision.googleapis.com/v1/images:annotate?key=" + keyV;
+            String img = requestBody.get("base64Image");
+            // Url + Clave de API's
+            String ClaveGCP = "AIzaSyD8xG8Q7GkdvEfTGC11WmQIgyLc7qwKGzI";
+            String urlString = "https://vision.googleapis.com/v1/images:annotate?key=" + ClaveGCP;
 
-            // Crear el cuerpo de la solicitud
-            String jsonBody = "{"
+            // Crear el cuerpo de la Peticion hacia Vision AI
+            String cuerpoJSON = "{"
                     + "\"requests\":["
                     + "{"
                     + "\"image\":{"
-                    + "\"content\":\"" + base64Image + "\""
+                    + "\"content\":\"" + img + "\""
                     + "},"
                     + "\"features\":["
                     + "{"
@@ -51,43 +51,35 @@ public class Cloud {
                     + "]"
                     + "}";
 
-            // Crear la conexión HTTP
-            URL url = new URL(urlString);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
+            // Crear una conexión HTTP
+            URL url = new URL(urlString); // Obtenemos la ruta completa y lo convertimos a tipo URL 
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();  
             // Configurar la solicitud HTTP
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestMethod("POST");  // tipo de Peticion
+            con.setRequestProperty("Content-Type", "application/json"); // Propiedades de la Petición
             con.setDoOutput(true);
 
             // Enviar el cuerpo de la solicitud
             try (OutputStream os = con.getOutputStream()) {
-                byte[] input = jsonBody.getBytes("utf-8");
+                byte[] input = cuerpoJSON.getBytes("utf-8"); // usamos utf-8 
                 os.write(input, 0, input.length);
             }
 
             // Leer la respuesta
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                StringBuilder response = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) {
-                    response.append(responseLine.trim());
+            try (BufferedReader bufferRead = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                StringBuilder respuesta = new StringBuilder();
+                String linea;
+                while ((linea = bufferRead.readLine()) != null) {
+                    respuesta.append(linea.trim());
                 }
 
-                // Parsear la respuesta JSON
-                JsonObject jsonResponse = JsonParser.parseString(response.toString()).getAsJsonObject();
-                JsonArray faceAnnotations = jsonResponse.getAsJsonArray("responses")
-                        .get(0).getAsJsonObject()
-                        .getAsJsonArray("faceAnnotations");
-
-                // Obtener información de los rostros
-                int cantidadRostros = faceAnnotations.size();
-
-                // Agregar la cantidad de rostros a la respuesta
-                jsonResponse.addProperty("cantidadRostros", cantidadRostros);
-
-                // Devolver la respuesta modificada
-                return jsonResponse.toString();
+                // Parsear la respuesta a formato JSON
+                JsonObject Respuesta = JsonParser.parseString(respuesta.toString()).getAsJsonObject();
+                // en la variable cara obtenemos el atributo en faceAnnotations
+                JsonArray caras = Respuesta.getAsJsonArray("responses").get(0).getAsJsonObject().getAsJsonArray("faceAnnotations");
+                int cantidadRostros = caras.size(); // Obtenemos el tamaño la lista de json de face Annotations
+                Respuesta.addProperty("cantidadRostros", cantidadRostros);// Agregar la cantidad de rostros a la respuesta JSON
+                return Respuesta.toString(); // Devolver la respuesta modificada
             }
         } catch (Exception e) {
             e.printStackTrace();
